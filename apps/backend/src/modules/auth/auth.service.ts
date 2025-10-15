@@ -1,7 +1,8 @@
 import { ENV } from "../../common/environment";
 import { AppError } from "../../common/errors";
 import prisma from "../../lib/prisma";
-import { sign } from "hono/jwt";
+import { sign, verify } from "hono/jwt";
+import { UserPayload } from "../../middleware/auth.middleware";
 
 export const authService = {
   async login(identifier: string, password: string): Promise<string> {
@@ -29,4 +30,11 @@ export const authService = {
     const token = await sign(payload, ENV().JWT_sECRET);
     return token;
   },
+
+  async me(user: UserPayload) {
+    const userFromDB = await prisma.user.findUnique({
+      where: { id: user.sub },
+    });
+    return userFromDB;
+  },  
 };
