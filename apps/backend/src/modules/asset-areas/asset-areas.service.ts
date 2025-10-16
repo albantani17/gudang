@@ -1,7 +1,7 @@
 import { AppError } from "../../common/errors";
 import { PaginationQuery } from "../../common/schema/pagination.schema";
 import prisma from "../../lib/prisma";
-import { AssetAreaEntity, AssetAreaList, CreateAssetArea } from "./asset-areas.schema";
+import { AssetAreaEntity, AssetAreaList, CreateAssetArea, UpdateAssetArea } from "./asset-areas.schema";
 
 export const assetAreasServices = {
   async create(data: CreateAssetArea): Promise<AssetAreaEntity> {
@@ -54,7 +54,7 @@ export const assetAreasServices = {
     return assetArea;
   },
 
-  async update(id: string, data: CreateAssetArea): Promise<AssetAreaEntity> {
+  async update(id: string, data: UpdateAssetArea): Promise<AssetAreaEntity> {
     await this.findOne(id);
 
     const assetArea = await prisma.assetArea.update({ where: { id }, data });

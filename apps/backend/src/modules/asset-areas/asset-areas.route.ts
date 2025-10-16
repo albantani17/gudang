@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { AssetAreaIdParam, CreateAssetArea } from "./asset-areas.schema";
+import { AssetAreaIdParam, CreateAssetArea, UpdateAssetArea } from "./asset-areas.schema";
 import { assetAreasServices } from "./asset-areas.service";
 import { zodValidationErrorHandler } from "../../common/errors";
 import { PaginationQuery } from "../../common/schema/pagination.schema";
@@ -43,7 +43,7 @@ assetAreasRouter.get(
 assetAreasRouter.put(
   "/:id",
   zValidator("param", AssetAreaIdParam, zodValidationErrorHandler),
-  zValidator("json", CreateAssetArea, zodValidationErrorHandler),
+  zValidator("json", UpdateAssetArea, zodValidationErrorHandler),
   async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");

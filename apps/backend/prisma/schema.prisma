@@ -77,9 +77,20 @@ model Supplier {
 }
 
 model AssetArea {
-  id String @id @default(uuid())
-  code String
-  name String
+  id        String   @id @default(uuid())
+  code      String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Agent {
+  id        String   @id @default(uuid())
+  code      String
+  name      String
+  identity  String
+  address   String
+  contact   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
