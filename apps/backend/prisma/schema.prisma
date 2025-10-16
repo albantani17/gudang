@@ -75,3 +75,11 @@ model Supplier {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model AssetArea {
+  id String @id @default(uuid())
+  code String
+  name String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

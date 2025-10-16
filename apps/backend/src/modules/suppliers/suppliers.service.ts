@@ -1,3 +1,4 @@
+import { AppError } from "../../common/errors";
 import { PaginationQuery } from "../../common/schema/pagination.schema";
 import prisma from "../../lib/prisma";
 import {
@@ -53,7 +54,7 @@ export const suppliersServices = {
     const supplier = await prisma.supplier.findUnique({ where: { id } });
 
     if (!supplier) {
-      throw new Error("Supplier not found");
+      throw new AppError("NOT_FOUND", 404, "Supplier not found");
     }
 
     return supplier;
