@@ -1,0 +1,63 @@
+import { AppError } from "../../common/errors";
+import { PaginationQuery } from "../../common/schema/pagination.schema";
+import prisma from "../../lib/prisma";
+import {
+  CategoryEntity,
+  CategoryList,
+  CreateCategory,
+} from "./categories.schema";
+
+export const categoriesServices = {
+  async create(data: CreateCategory): Promise<CategoryEntity> {
+    const category = await prisma.category.create({ data });
+
+    return category;
+  },
+
+  async find(pagination: PaginationQuery): Promise<CategoryList> {
+    const { search, limit, page } = pagination;
+
+    const count = await prisma.category.count({
+      where: { name: { contains: search } },
+    });
+
+    const categories = await prisma.category.findMany({
+      take: limit,
+      skip: (page - 1) * limit,
+      where: { name: { contains: search } },
+    });
+
+    return {
+      items: categories,
+      total: count,
+      pagination: {
+        limit,
+        currentPage: page,
+        totalPages: Math.ceil(count / limit),
+      },
+    };
+  },
+
+  async findOne(id: string): Promise<CategoryEntity> {
+    const category = await prisma.category.findUnique({ where: { id } });
+
+    if (!category) {
+      throw new AppError("NOT_FOUND", 404, "Category not found");
+    }
+
+    return category;
+  },
+
+  async update(id: string, data: CreateCategory): Promise<CategoryEntity> {
+    await this.findOne(id);
+    const category = await prisma.category.update({ where: { id }, data });
+
+    return category;
+  },
+
+  async delete(id: string): Promise<CategoryEntity> {
+    const category = await this.findOne(id);
+    await prisma.category.delete({ where: { id } });
+    return category;
+  },
+};
