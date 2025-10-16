@@ -1,7 +1,7 @@
 import { AppError } from "../../common/errors";
 import { PaginationQuery } from "../../common/schema/pagination.schema";
 import prisma from "../../lib/prisma";
-import { CreateUnit, UnitEntity, UnitList } from "./units.schema";
+import { CreateUnit, UnitEntity, UnitList, UpdateUnit } from "./units.schema";
 
 export const unitServices = {
   async create(data: CreateUnit): Promise<UnitEntity> {
@@ -56,7 +56,7 @@ export const unitServices = {
     return unit;
   },
 
-  async update(id: string, data: CreateUnit): Promise<UnitEntity> {
+  async update(id: string, data: UpdateUnit): Promise<UnitEntity> {
     await this.findOne(id);
 
     const unit = await prisma.unit.update({

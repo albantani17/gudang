@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { CreateProduct, ProductIdParam } from "./products.schema";
+import { CreateProduct, ProductIdParam, UpdateProduct } from "./products.schema";
 import { zodValidationErrorHandler } from "../../common/errors";
 import { productsServices } from "./products.service";
 import { PaginationQuery } from "../../common/schema/pagination.schema";
@@ -40,7 +40,7 @@ productsRouter.get(
 productsRouter.put(
   "/:id",
   zValidator("param", ProductIdParam, zodValidationErrorHandler),
-  zValidator("json", CreateProduct, zodValidationErrorHandler),
+  zValidator("json", UpdateProduct, zodValidationErrorHandler),
   async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");

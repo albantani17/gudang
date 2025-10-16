@@ -1,7 +1,7 @@
 import { AppError } from "../../common/errors";
 import { PaginationQuery } from "../../common/schema/pagination.schema";
 import prisma from "../../lib/prisma";
-import { CreateProduct, ProductEntity, ProductList } from "./products.schema";
+import { CreateProduct, ProductEntity, ProductList, UpdateProduct } from "./products.schema";
 
 export const productsServices = {
   async create(data: CreateProduct): Promise<ProductEntity> {
@@ -78,7 +78,7 @@ export const productsServices = {
     return product;
   },
 
-  async update(id: string, data: CreateProduct): Promise<ProductEntity> {
+  async update(id: string, data: UpdateProduct): Promise<ProductEntity> {
     await this.findOne(id);
     const product = await prisma.product.update({
       where: { id },

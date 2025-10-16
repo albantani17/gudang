@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { CreateUnitSchema, UnitIdParam } from "./units.schema";
+import { CreateUnitSchema, UnitIdParam, UpdateUnitSchema } from "./units.schema";
 import { unitServices } from "./units.service";
 import { PaginationQuery } from "../../common/schema/pagination.schema";
 import { zodValidationErrorHandler } from "../../common/errors";
@@ -40,7 +40,7 @@ unitsRouter.get(
 unitsRouter.put(
   "/:id",
   zValidator("param", UnitIdParam, zodValidationErrorHandler),
-  zValidator("json", CreateUnitSchema, zodValidationErrorHandler),
+  zValidator("json", UpdateUnitSchema, zodValidationErrorHandler),
   async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");

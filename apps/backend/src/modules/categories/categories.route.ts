@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { CategoryIdParam, CreateCategory } from "./categories.schema";
+import { CategoryIdParam, CreateCategory, UpdateCategory } from "./categories.schema";
 import { categoriesServices } from "./categories.service";
 import { zodValidationErrorHandler } from "../../common/errors";
 import { PaginationQuery } from "../../common/schema/pagination.schema";
@@ -40,7 +40,7 @@ categoriesRouter.get(
 categoriesRouter.put(
   "/:id",
   zValidator("param", CategoryIdParam, zodValidationErrorHandler),
-  zValidator("json", CreateCategory, zodValidationErrorHandler),
+  zValidator("json", UpdateCategory, zodValidationErrorHandler),
   async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");

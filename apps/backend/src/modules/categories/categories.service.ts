@@ -5,6 +5,7 @@ import {
   CategoryEntity,
   CategoryList,
   CreateCategory,
+  UpdateCategory,
 } from "./categories.schema";
 
 export const categoriesServices = {
@@ -48,7 +49,7 @@ export const categoriesServices = {
     return category;
   },
 
-  async update(id: string, data: CreateCategory): Promise<CategoryEntity> {
+  async update(id: string, data: UpdateCategory): Promise<CategoryEntity> {
     await this.findOne(id);
     const category = await prisma.category.update({ where: { id }, data });
 
