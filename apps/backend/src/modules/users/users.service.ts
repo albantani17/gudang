@@ -32,20 +32,14 @@ export const usersService = {
 
     const createUser = await prisma.user.create({
       data,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        username: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      omit: { password: true, roleId: true },
+      include: { role: true },
     });
 
     return createUser;
   },
 
-  async findAll(pagination: PaginationQuery): Promise<UserList> {
+  async find(pagination: PaginationQuery): Promise<UserList> {
     const { search, limit, page } = pagination;
     const orSearch =
       search && search.trim().length > 0
@@ -64,14 +58,8 @@ export const usersService = {
       take: limit,
       skip: (page - 1) * limit,
       where: { OR: orSearch },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        username: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      omit: { password: true, roleId: true },
+      include: { role: true },
     });
 
     return {
@@ -88,14 +76,8 @@ export const usersService = {
   async findOne(id: string): Promise<UserEntity> {
     const user = await prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        username: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      omit: { password: true, roleId: true },
+      include: { role: true },
     });
 
     if (!user) {
@@ -110,14 +92,8 @@ export const usersService = {
     const user = await prisma.user.update({
       where: { id },
       data,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        username: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      omit: { password: true, roleId: true },
+      include: { role: true },
     });
 
     return user;
@@ -127,14 +103,8 @@ export const usersService = {
     await this.findOne(id);
     const user = await prisma.user.delete({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        username: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      include: { role: true },
+      omit: { password: true, roleId: true },
     });
 
     return user;

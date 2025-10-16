@@ -19,12 +19,28 @@ async function main() {
     return;
   }
 
+  const roleExists = await prisma.role.findFirst();
+
+  const result: { id: string; name: string } = { id: "", name: "" };
+  if (!roleExists) {
+    const role = await prisma.role.create({
+      data: {
+        name: "Admin",
+        permission: ["*"],
+      },
+    });
+
+    result.id = role.id;
+    result.name = role.name;
+  }
+
   await prisma.user.create({
     data: {
       username: adminUsername,
       email: adminEmail,
       password: await Bun.password.hash(adminPassword),
       name: "Admin",
+      roleId: result.id,
     },
   });
 

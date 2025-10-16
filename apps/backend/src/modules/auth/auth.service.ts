@@ -1,7 +1,7 @@
 import { ENV } from "../../common/environment";
 import { AppError } from "../../common/errors";
 import prisma from "../../lib/prisma";
-import { sign, verify } from "hono/jwt";
+import { sign } from "hono/jwt";
 import { UserPayload } from "../../middleware/auth.middleware";
 
 export const authService = {
@@ -20,10 +20,11 @@ export const authService = {
       throw new AppError("UNAUTHORIZED", 401, "Invalid credentials");
     }
 
-    const payload = {
+    const payload: UserPayload = {
       sub: user.id,
       email: user.email,
       username: user.username,
+      roleId: user.roleId,
       exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour
     };
 
@@ -34,7 +35,9 @@ export const authService = {
   async me(user: UserPayload) {
     const userFromDB = await prisma.user.findUnique({
       where: { id: user.sub },
+      include: { role: true },
+      omit: { password: true, roleId: true },
     });
     return userFromDB;
-  },  
+  },
 };

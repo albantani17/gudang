@@ -36,7 +36,7 @@ export function mapError(err: unknown) {
   if (err instanceof AppError) {
     return {
       status: err.status as ContentfulStatusCode,
-      body: { error: err.code },
+      body: { error: err.code, message: err.message },
     };
   }
   return {

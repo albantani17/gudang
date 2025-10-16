@@ -5,15 +5,18 @@ import { mapError } from "./common/errors";
 import { usersRouter } from "./modules/users/users.route";
 import { authRouter } from "./modules/auth/auth.route";
 import { authMiddleware, UserPayload } from "./middleware/auth.middleware";
+import { rbacMiddleware } from "./middleware/rbac.middleware";
+import { rolesRouter } from "./modules/roles/role.route";
 
 export const app = new Hono<{ Variables: { user: UserPayload } }>();
 
 app.use(prettyJSON());
 app.use(cors());
-app.use(authMiddleware);
+app.use(authMiddleware, rbacMiddleware);
 
-app.route("/users", usersRouter);
-app.route("/auth", authRouter);
+app.route("/api/users", usersRouter);
+app.route("/api/auth", authRouter);
+app.route("/api/roles", rolesRouter);
 
 app.get("/", (c) => {
   return c.text("Hello Hono!");

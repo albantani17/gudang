@@ -14,12 +14,46 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model user {
+model User {
   id        String   @id @default(uuid())
   name      String
   username  String   @unique()
   email     String   @unique()
-  password  String   
+  password  String
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Restrict)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt()
+
+  @@index([roleId])
+}
+
+model Role {
+  id         String @id @default(uuid())
+  name       String @unique()
+  permission Json
+  users      User[]
+}
+
+model Unit {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  description String
+  product     Product[]
+}
+
+model Category {
+  id      String    @id @default(uuid())
+  name    String
+  product Product[]
+}
+
+model Product {
+  id         String   @id @default(uuid())
+  name       String
+  code       String
+  unitId     String
+  categoryId String
+  unit       Unit     @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 }

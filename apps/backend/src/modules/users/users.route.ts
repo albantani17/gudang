@@ -22,7 +22,7 @@ usersRouter.get(
   zValidator("query", PaginationQuery, zodValidationErrorHandler),
   async (c) => {
     const pagination = c.req.valid("query");
-    const result = await usersService.findAll(pagination);
+    const result = await usersService.find(pagination);
     return c.json({ data: result, message: "Users fetched successfully" });
   }
 );

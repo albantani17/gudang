@@ -1,14 +1,18 @@
 import { Context, Next } from "hono";
 import { verify } from "hono/jwt";
 import { ENV } from "../common/environment";
+import { AppError } from "../common/errors";
+import { JwtTokenInvalid } from "hono/utils/jwt/types";
 
-const PUBLIC_ENDPOINTS = ["/auth/login"];
+export const PUBLIC_ENDPOINTS = ["/api/auth/login"];
 
 export type UserPayload = {
   sub: string;
   email: string;
   username: string;
-} 
+  roleId: string;
+  exp: number;
+};
 
 export const authMiddleware = async (c: Context, next: Next) => {
   const { path } = c.req;
@@ -20,17 +24,23 @@ export const authMiddleware = async (c: Context, next: Next) => {
   const token = c.req.header("Authorization");
 
   if (!token) {
-    return c.json({ error: "UNAUTHORIZED", message: "Unauthorized" }, 401);
+    throw new AppError("UNAUTHORIZED", 401, "Unauthorized");
   }
 
   const [prefix, tokenValue] = token.split(" ");
 
   if (prefix !== "Bearer") {
-    return c.json({ error: "UNAUTHORIZED", message: "Unauthorized" }, 401);
+    throw new AppError("UNAUTHORIZED", 401, "Unauthorized");
   }
 
-  const payload = await verify(tokenValue, ENV().JWT_sECRET);
-
-  c.set("user", payload);
-  return next();
+  try {
+    const payload = await verify(tokenValue, ENV().JWT_sECRET);
+    c.set("user", payload);
+    return next();
+  } catch (error) {
+    if (error instanceof JwtTokenInvalid) {
+      throw new AppError("UNAUTHORIZED", 401, "Invalid Token");
+    }
+    throw new AppError("INTERNAL", 500, "Internal Server Error");
+  }
 };

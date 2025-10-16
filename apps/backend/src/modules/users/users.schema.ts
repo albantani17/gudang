@@ -9,6 +9,7 @@ export const CreateUserBody = z.object({
   name: z.string(),
   username: z.string(),
   password: z.string().min(8).check(),
+  roleId: z.uuid()
 });
 
 export const UpdateUserBody = z.object({
