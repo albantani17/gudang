@@ -6,7 +6,7 @@ import {
   UpdateWareHouse,
   WareHouseEntity,
   WareHouseList,
-} from "./ware-houses.schema";
+} from "./warehouses.schema";
 
 export class WarehouseService {
   async create(data: CreateWareHouse): Promise<WareHouseEntity> {

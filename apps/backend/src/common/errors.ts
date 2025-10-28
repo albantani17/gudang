@@ -19,7 +19,7 @@ export class AppError extends Error {
   }
 }
 
-export function zodError(e: $ZodError) {
+function zodError(e: $ZodError) {
   return e.issues.map((issue) => ({
     path: issue.path[0],
     message: issue.message,
@@ -59,16 +59,59 @@ export function errorHandler(error: unknown, c: Context) {
 }
 
 export function zodValidationErrorHandler(
-  result: any,
+  result: Record<string, unknown>,
   c: Context
 ) {
   if (!result.success) {
     return c.json(
       {
         error: "VALIDATION_ERROR",
-        message: zodError(result.error),
+        message: new zodErrorHandler(result.error).zodErrortoSentence(),
       },
       400
     );
+  }
+}
+
+class zodErrorHandler {
+  error: unknown;
+  constructor(error: unknown) {
+    this.error = error;
+  }
+  private formatPath(path: (string | number | symbol)[]) {
+    return (
+      path
+        .map((seg) =>
+          typeof seg === "number" ? `[${seg}]` : `.${String(seg)}`
+        )
+        .join("")
+        .replace(/^\./, "") || "root"
+    );
+  }
+
+  public zodErrortoSentence(
+    opts: { separator?: string; maxIssues?: number } = {}
+  ): string {
+    if (!(this.error instanceof ZodError)) return "Terjadi kesalahan validasi.";
+
+    const { separator = "; ", maxIssues = Infinity } = opts;
+
+    const message = Array.from(
+      new Set(
+        this.error.issues.map((issue) => {
+          const where = this.formatPath(issue.path);
+          return where ? `${where}: ${issue.message}` : issue.message;
+        })
+      )
+    );
+
+    const shown = message.slice(0, maxIssues);
+    const more = message.length - shown.length;
+
+    const sentence =
+      shown.join(separator) +
+      (more > 0 ? `${separator}+${more} error lain` : "");
+
+    return sentence.charAt(0).toUpperCase() + sentence.slice(1);
   }
 }

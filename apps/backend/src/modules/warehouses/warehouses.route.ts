@@ -4,9 +4,9 @@ import {
   CreateWareHouse,
   UpdateWareHouse,
   WareHouseIdParam,
-} from "./ware-houses.schema";
+} from "./warehouses.schema";
 import { zodValidationErrorHandler } from "../../common/errors";
-import { WarehouseService } from "./ware-houses.service";
+import { WarehouseService } from "./warehouses.service";
 import { PaginationQuery } from "../../common/schema/pagination.schema";
 
 export const wareHousesRouter = new Hono();

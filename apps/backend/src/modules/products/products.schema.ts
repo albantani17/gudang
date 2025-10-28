@@ -19,6 +19,7 @@ export const ProductIdParam = z.object({ id: z.uuid() });
 export const ProductEntity = z.object({
   id: z.uuid(),
   name: z.string(),
+  code: z.string(),
   category: CategoryEntity,
   unit: UnitEntity,
   createdAt: z.date(),
