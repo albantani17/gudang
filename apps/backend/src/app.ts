@@ -13,6 +13,7 @@ import { productsRouter } from "./modules/products/products.route";
 import { suppliersRouter } from "./modules/suppliers/suppliers.route";
 import { assetAreasRouter } from "./modules/asset-areas/asset-areas.route";
 import { agentsRouter } from "./modules/agents/agents.route";
+import { purchaseOrdersRouter } from "./modules/purchase-order/purchase-order.route";
 
 export const app = new Hono<{ Variables: { user: UserPayload } }>();
 
@@ -29,6 +30,7 @@ app.route("/api/products", productsRouter);
 app.route("/api/suppliers", suppliersRouter);
 app.route("/api/asset-areas", assetAreasRouter);
 app.route("/api/agents", agentsRouter);
+app.route("/api/purchase-orders", purchaseOrdersRouter);
 
 app.get("/", (c) => {
   return c.text("Hello Hono!");

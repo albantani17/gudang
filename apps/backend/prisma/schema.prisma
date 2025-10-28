@@ -55,30 +55,45 @@ model Category {
 }
 
 model Product {
-  id         String   @id @default(uuid())
-  name       String
-  code       String
-  unitId     String
-  categoryId String
-  unit       Unit     @relation(fields: [unitId], references: [id], onDelete: Restrict)
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt()
+  id             String          @id @default(uuid())
+  name           String
+  code           String          @unique
+  unitId         String
+  categoryId     String
+  unit           Unit            @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  category       Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  transactionsIn TransactionIn[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt()
+  purchaseLists  PurchaseList[]
+
+  @@index([unitId])
+  @@index([categoryId])
 }
 
 model Supplier {
-  id        String   @id @default(uuid())
-  name      String
-  code      String
-  address   String
-  contact   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String          @id @default(uuid())
+  name           String
+  code           String          @unique
+  address        String
+  contact        String
+  purchaseOrders PurchaseOrder[]
+  transactionsIn TransactionIn[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model Warehouse {
+  id             String          @id @default(uuid())
+  name           String
+  transactionsIn TransactionIn[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 }
 
 model AssetArea {
   id        String   @id @default(uuid())
-  code      String
+  code      String   @unique
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -86,11 +101,61 @@ model AssetArea {
 
 model Agent {
   id        String   @id @default(uuid())
-  code      String
+  code      String   @unique
   name      String
   identity  String
   address   String
   contact   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model PurchaseOrder {
+  id            String         @id @default(uuid())
+  orderNumber   String
+  deliveryDate  DateTime
+  paymentDate   DateTime
+  description   String?
+  supplierId    String
+  supplier      Supplier       @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  purchaseLists PurchaseList[]
+  isUsePpn      Boolean        @default(false)
+  ppn           Int            @default(0)
+  totalPrice    Int            @default(0)
+  createdAt     DateTime       @default(now())
+
+  @@index([supplierId])
+}
+
+model PurchaseList {
+  id              String        @id @default(uuid())
+  basePrice       Int
+  amount          Int
+  totalPrice      Int
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([productId])
+  @@index([purchaseOrderId])
+}
+
+model TransactionIn {
+  id          String    @id @default(uuid())
+  date        DateTime  @default(now())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+  supplierId  String
+  supplier    Supplier  @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  invoice     String
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  amount      Int
+
+  @@index([productId])
+  @@index([supplierId])
+  @@index([warehouseId])
 }
