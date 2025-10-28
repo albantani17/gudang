@@ -1,4 +1,4 @@
-import { describe, expect, it, jest, mock } from "bun:test";
+import { afterAll, describe, expect, it, jest, mock } from "bun:test";
 import { productsServices } from "./products.service";
 
 const productMock = {
@@ -20,7 +20,8 @@ const unitMock = {
 };
 
 mock.module("../../lib/prisma", () => ({
-  prisma: {
+  __esModule: true,
+  default: {
     product: {
       create: jest.fn(() => {}),
       findFirst: jest.fn(() => productMock),
@@ -33,6 +34,10 @@ mock.module("../../lib/prisma", () => ({
     },
   },
 }));
+
+afterAll(() => {
+  mock.restore();
+});
 
 describe("product service", () => {
   describe("create", () => {
