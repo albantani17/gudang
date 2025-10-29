@@ -199,7 +199,7 @@ describe("purchaseOrdersRouter POST /", () => {
     const body = await response.json();
 
     expect(body.error).toBe("VALIDATION_ERROR");
-    expect(Array.isArray(body.message)).toBe(true);
+    expect(typeof body.message).toBe("string");
     expect(createSpy).not.toHaveBeenCalled();
   });
 });
