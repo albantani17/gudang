@@ -8,27 +8,79 @@ import {
 } from "./transactions-out.schema";
 
 export class TransactionsOutService {
+  MAX_RETRY = 5;
   async create(data: CreateTransactionOut): Promise<TransactionOutEntity> {
-    const findExistingInvoice = await prisma.transactionOut.findFirst({
-      where: {
-        invoice: data.invoice,
-      },
-    });
+    for (let attempt = 1; attempt <= this.MAX_RETRY; attempt++) {
+      try {
+        return await prisma.$transaction(async (tx) => {
+          const stock = await tx.productWarehouseStock.findFirst({
+            where: {
+              productId: data.productId,
+              wareHouseId: data.warehouseId,
+            },
+            select: { qtyOnHand: true, version: true },
+          });
 
-    if (findExistingInvoice) {
-      throw new AppError("BAD_REQUEST", 400, "Invoice already exists");
+          const currentQty = Number(stock?.qtyOnHand || 0);
+          const currentVersion = stock?.version ?? 0;
+
+          if (currentQty < data.amount) {
+            throw new AppError(
+              "BAD_REQUEST",
+              400,
+              `Stock tidak cukup: ada ${currentQty}, diminta ${data.amount}`
+            );
+          }
+
+          const updated = await tx.productWarehouseStock.updateMany({
+            where: {
+              productId: data.productId,
+              wareHouseId: data.warehouseId,
+              version: currentVersion,
+              qtyOnHand: { gte: data.amount },
+            },
+            data: {
+              qtyOnHand: { decrement: data.amount },
+              version: { increment: 1 },
+            },
+          });
+
+          if (updated.count === 0) {
+            throw new Error("CONFLICT_RETRY");
+          }
+
+          const lastCode = await tx.transactionOut.findFirst({
+            orderBy: { invoice: "desc" },
+            select: { invoice: true },
+          });
+
+          const invoice = lastCode?.invoice
+            ? Number(lastCode.invoice.split("-")[1]) + 1
+            : 1;
+
+          const transactionId = `TR-${invoice}`;
+
+          const row = await tx.transactionOut.create({
+            data: {
+              ...data,
+              transactionId,
+            },
+            include: { product: true, warehouse: true },
+          });
+
+          return row;
+        });
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message === "CONFLICT_RETRY" && attempt < this.MAX_RETRY) {
+            continue;
+          }
+          throw error;
+        }
+      }
     }
 
-    const count = await prisma.transactionOut.count();
-
-    const transactionId = `TR-${count + 1}`;
-
-    const transactionOut = await prisma.transactionOut.create({
-      data: { ...data, transactionId },
-      include: { product: true, warehouse: true },
-    });
-
-    return transactionOut;
+    throw new AppError("BAD_REQUEST", 500, "Gagal membuat transaksi");
   }
 
   async find(pagination: PaginationQuery): Promise<TransactionOutList> {

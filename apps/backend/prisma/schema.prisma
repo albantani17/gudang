@@ -180,3 +180,12 @@ model TransactionOut {
   @@index([productId])
   @@index([warehouseId])
 }
+
+model ProductWarehouseStock {
+  productId   String
+  wareHouseId String
+  qtyOnHand   Int    @default(0)
+  version Int @default(0)
+
+  @@id([productId, wareHouseId])
+}

@@ -9,29 +9,53 @@ import {
 
 export class TransactionInService {
   async create(data: CreateTransactionIn): Promise<TransactionInEntity> {
-    const findExistsingCode = await prisma.transactionIn.findFirst({
-      where: {
-        invoice: data.invoice,
-      },
+    return prisma.$transaction(async (tx) => {
+      const findExistsingCode = await prisma.transactionIn.findFirst({
+        where: {
+          invoice: data.invoice,
+        },
+      });
+
+      if (findExistsingCode) {
+        throw new AppError("BAD_REQUEST", 400, "Invoice already exists");
+      }
+
+      const count = await prisma.transactionIn.count();
+
+      const transactionId = `TR-${count + 1}`;
+
+      const payload = { ...data, transactionId };
+
+      const transactionIn = await prisma.transactionIn.create({
+        data: payload,
+        omit: { productId: true, supplierId: true, warehouseId: true },
+        include: { product: true, supplier: true, warehouse: true },
+      });
+
+      await tx.productWarehouseStock.upsert({
+        where: {
+          productId_wareHouseId: {
+            productId: data.productId,
+            wareHouseId: data.warehouseId,
+          },
+        },
+        create: {
+          productId: data.productId,
+          wareHouseId: data.warehouseId,
+          qtyOnHand: data.amount,
+        },
+        update: {
+          qtyOnHand: {
+            increment: data.amount,
+          },
+          version: {
+            increment: 1,
+          },
+        },
+      });
+
+      return transactionIn;
     });
-
-    if (findExistsingCode) {
-      throw new AppError("BAD_REQUEST", 400, "Invoice already exists");
-    }
-
-    const count = await prisma.transactionIn.count();
-
-    const transactionId = `TR-${count + 1}`;
-
-    const payload = { ...data, transactionId };
-
-    const transactionIn = await prisma.transactionIn.create({
-      data: payload,
-      omit: { productId: true, supplierId: true, warehouseId: true },
-      include: { product: true, supplier: true, warehouse: true },
-    });
-
-    return transactionIn;
   }
 
   async find(pagination: PaginationQuery): Promise<TransactionInList> {
