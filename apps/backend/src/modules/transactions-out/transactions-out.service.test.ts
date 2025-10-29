@@ -45,6 +45,7 @@ const sampleTransactionOutRecord = {
 };
 
 const originalTransactionOut = prisma.transactionOut;
+const original$transaction = prisma.$transaction;
 
 const createTransactionOutMock = () => ({
   findFirst: jest.fn(),
@@ -55,49 +56,95 @@ const createTransactionOutMock = () => ({
   delete: jest.fn(),
 });
 
+const createTransactionClientMock = () => ({
+  productWarehouseStock: {
+    findFirst: jest.fn(),
+    updateMany: jest.fn(),
+  },
+  transactionOut: {
+    findFirst: jest.fn(),
+    create: jest.fn(),
+  },
+});
+
 let transactionOutMock = createTransactionOutMock();
+let transactionClientMock = createTransactionClientMock();
+let transactionRunnerMock = jest.fn(async (cb: any) => cb(transactionClientMock));
 
 beforeEach(() => {
   jest.restoreAllMocks();
   transactionOutMock = createTransactionOutMock();
+  transactionClientMock = createTransactionClientMock();
+  transactionRunnerMock = jest.fn(async (cb: any) => cb(transactionClientMock));
   (prisma as any).transactionOut = transactionOutMock;
+  (prisma as any).$transaction = transactionRunnerMock;
 });
 
 afterAll(() => {
   (prisma as any).transactionOut = originalTransactionOut;
+  (prisma as any).$transaction = original$transaction;
 });
 
 describe("TransactionsOutService", () => {
-  const service = new TransactionsOutService();
+  let service: TransactionsOutService;
+
+  beforeEach(() => {
+    service = new TransactionsOutService();
+  });
 
   describe("create", () => {
-    it("throws when invoice already exists", async () => {
-      transactionOutMock.findFirst.mockResolvedValueOnce(sampleTransactionOutRecord as any);
+    it("throws when stock is insufficient", async () => {
+      transactionClientMock.productWarehouseStock.findFirst.mockResolvedValueOnce({
+        qtyOnHand: 2,
+        version: 1,
+      });
 
       await expect(service.create(sampleCreatePayload)).rejects.toMatchObject({
         code: "BAD_REQUEST",
         status: 400,
-        message: "Invoice already exists",
+        message: "Stock tidak cukup: ada 2, diminta 5",
       });
 
-      expect(transactionOutMock.create).not.toHaveBeenCalled();
+      expect(transactionRunnerMock).toHaveBeenCalledTimes(1);
+      expect(transactionClientMock.productWarehouseStock.updateMany).not.toHaveBeenCalled();
     });
 
-    it("creates a transaction out with generated transactionId", async () => {
-      transactionOutMock.findFirst.mockResolvedValueOnce(null);
-      transactionOutMock.count.mockResolvedValueOnce(7);
-      transactionOutMock.create.mockResolvedValueOnce(sampleTransactionOutRecord as any);
+    it("retries on concurrent stock updates before creating a transaction", async () => {
+      transactionClientMock.productWarehouseStock.findFirst.mockResolvedValue({
+        qtyOnHand: 10,
+        version: 4,
+      });
+      transactionClientMock.productWarehouseStock.updateMany
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 1 });
+      transactionClientMock.transactionOut.findFirst.mockResolvedValueOnce({ invoice: "TR-7" });
+      transactionClientMock.transactionOut.create.mockResolvedValueOnce(
+        sampleTransactionOutRecord as any
+      );
 
       const result = await service.create(sampleCreatePayload);
 
-      expect(transactionOutMock.count).toHaveBeenCalledTimes(1);
-      expect(transactionOutMock.create).toHaveBeenCalledWith(
+      expect(transactionRunnerMock).toHaveBeenCalledTimes(2);
+      expect(transactionClientMock.productWarehouseStock.findFirst).toHaveBeenCalledTimes(2);
+      expect(transactionClientMock.productWarehouseStock.updateMany).toHaveBeenCalledTimes(2);
+      expect(transactionClientMock.productWarehouseStock.updateMany).toHaveBeenNthCalledWith(2, {
+        where: {
+          productId: sampleCreatePayload.productId,
+          wareHouseId: sampleCreatePayload.warehouseId,
+          version: 4,
+          qtyOnHand: { gte: sampleCreatePayload.amount },
+        },
+        data: {
+          qtyOnHand: { decrement: sampleCreatePayload.amount },
+          version: { increment: 1 },
+        },
+      });
+      expect(transactionClientMock.transactionOut.findFirst).toHaveBeenCalledTimes(1);
+      expect(transactionClientMock.transactionOut.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
+            ...sampleCreatePayload,
             transactionId: "TR-8",
-            invoice: sampleCreatePayload.invoice,
-            purpose: sampleCreatePayload.purpose,
-            amount: sampleCreatePayload.amount,
           }),
           include: expect.objectContaining({
             product: true,
@@ -106,6 +153,24 @@ describe("TransactionsOutService", () => {
         })
       );
       expect(result).toEqual(sampleTransactionOutRecord);
+    });
+
+    it("throws when all retries are exhausted", async () => {
+      service.MAX_RETRY = 3;
+      transactionClientMock.productWarehouseStock.findFirst.mockResolvedValue({
+        qtyOnHand: 10,
+        version: 2,
+      });
+      transactionClientMock.productWarehouseStock.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.create(sampleCreatePayload)).rejects.toHaveProperty(
+        "message",
+        "CONFLICT_RETRY"
+      );
+
+      expect(transactionRunnerMock).toHaveBeenCalledTimes(3);
+      expect(transactionClientMock.transactionOut.findFirst).not.toHaveBeenCalled();
+      expect(transactionClientMock.transactionOut.create).not.toHaveBeenCalled();
     });
   });
 

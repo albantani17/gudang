@@ -55,6 +55,7 @@ const sampleTransactionInRecord = {
 };
 
 const originalTransactionIn = prisma.transactionIn;
+const original$transaction = prisma.$transaction;
 
 const createTransactionInMock = () => ({
   findFirst: jest.fn(),
@@ -65,16 +66,28 @@ const createTransactionInMock = () => ({
   delete: jest.fn(),
 });
 
+const createTransactionClientMock = () => ({
+  productWarehouseStock: {
+    upsert: jest.fn(),
+  },
+});
+
 let transactionInMock = createTransactionInMock();
+let transactionClientMock = createTransactionClientMock();
+let transactionRunnerMock = jest.fn(async (cb: any) => cb(transactionClientMock));
 
 beforeEach(() => {
   jest.restoreAllMocks();
   transactionInMock = createTransactionInMock();
+  transactionClientMock = createTransactionClientMock();
+  transactionRunnerMock = jest.fn(async (cb: any) => cb(transactionClientMock));
   (prisma as any).transactionIn = transactionInMock;
+  (prisma as any).$transaction = transactionRunnerMock;
 });
 
 afterAll(() => {
   (prisma as any).transactionIn = originalTransactionIn;
+  (prisma as any).$transaction = original$transaction;
 });
 
 describe("TransactionInService", () => {
@@ -91,16 +104,40 @@ describe("TransactionInService", () => {
       });
 
       expect(transactionInMock.create).not.toHaveBeenCalled();
+      expect(transactionClientMock.productWarehouseStock.upsert).not.toHaveBeenCalled();
+      expect(transactionRunnerMock).toHaveBeenCalledTimes(1);
     });
 
     it("creates a transaction in with generated transactionId", async () => {
       transactionInMock.findFirst.mockResolvedValueOnce(null);
       transactionInMock.count.mockResolvedValueOnce(4);
       transactionInMock.create.mockResolvedValueOnce(sampleTransactionInRecord as any);
+      transactionClientMock.productWarehouseStock.upsert.mockResolvedValueOnce(undefined);
 
       const result = await service.create(sampleCreatePayload);
 
       expect(transactionInMock.count).toHaveBeenCalledTimes(1);
+      expect(transactionClientMock.productWarehouseStock.upsert).toHaveBeenCalledWith({
+        where: {
+          productId_wareHouseId: {
+            productId: sampleCreatePayload.productId,
+            wareHouseId: sampleCreatePayload.warehouseId,
+          },
+        },
+        create: {
+          productId: sampleCreatePayload.productId,
+          wareHouseId: sampleCreatePayload.warehouseId,
+          qtyOnHand: sampleCreatePayload.amount,
+        },
+        update: {
+          qtyOnHand: {
+            increment: sampleCreatePayload.amount,
+          },
+          version: {
+            increment: 1,
+          },
+        },
+      });
       expect(transactionInMock.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -113,9 +150,15 @@ describe("TransactionInService", () => {
             supplier: true,
             warehouse: true,
           }),
+          omit: expect.objectContaining({
+            productId: true,
+            supplierId: true,
+            warehouseId: true,
+          }),
         })
       );
       expect(result).toEqual(sampleTransactionInRecord);
+      expect(transactionRunnerMock).toHaveBeenCalledTimes(1);
     });
   });
 
