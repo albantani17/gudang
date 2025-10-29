@@ -139,8 +139,27 @@ export class TransactionsOutService {
 
   async remove(id: string): Promise<TransactionOutEntity> {
     const transactionOut = await this.findOne(id);
-    await prisma.transactionOut.delete({ where: { id } });
+    return prisma.$transaction(async (tx) => {
+      await tx.transactionOut.delete({ where: { id } });
 
-    return transactionOut;
+      await tx.productWarehouseStock.update({
+        where: {
+          productId_wareHouseId: {
+            productId: transactionOut.product.id,
+            wareHouseId: transactionOut.warehouse.id,
+          },
+        },
+        data: {
+          qtyOnHand: {
+            increment: transactionOut.amount,
+          },
+          version: {
+            increment: 1,
+          },
+        },
+      });
+
+      return transactionOut;
+    });
   }
 }

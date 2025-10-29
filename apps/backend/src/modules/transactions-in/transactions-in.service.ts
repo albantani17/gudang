@@ -118,9 +118,28 @@ export class TransactionInService {
   }
 
   async remove(id: string): Promise<TransactionInEntity> {
-    const transactionIn = await this.findOne(id);
-    await prisma.transactionIn.delete({ where: { id } });
+    return prisma.$transaction(async (tx) => {
+      const transactionIn = await this.findOne(id);
+      await prisma.transactionIn.delete({ where: { id } });
 
-    return transactionIn;
+      await tx.productWarehouseStock.update({
+        where: {
+          productId_wareHouseId: {
+            productId: transactionIn.product.id,
+            wareHouseId: transactionIn.warehouse.id,
+          },
+        },
+        data: {
+          qtyOnHand: {
+            decrement: transactionIn.amount,
+          },
+          version: {
+            increment: 1,
+          },
+        },
+      });
+
+      return transactionIn;
+    });
   }
 }

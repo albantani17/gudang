@@ -69,6 +69,7 @@ const createTransactionInMock = () => ({
 const createTransactionClientMock = () => ({
   productWarehouseStock: {
     upsert: jest.fn(),
+    update: jest.fn(),
   },
 });
 
@@ -254,13 +255,36 @@ describe("TransactionInService", () => {
     it("deletes the transaction and returns the previous entity", async () => {
       transactionInMock.findUnique.mockResolvedValueOnce(sampleTransactionInRecord as any);
       transactionInMock.delete.mockResolvedValueOnce(sampleTransactionInRecord as any);
+      transactionClientMock.productWarehouseStock.update.mockResolvedValueOnce(undefined);
 
       const result = await service.remove(sampleTransactionInRecord.id);
 
+      expect(transactionInMock.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: sampleTransactionInRecord.id },
+        })
+      );
       expect(transactionInMock.delete).toHaveBeenCalledWith({
         where: { id: sampleTransactionInRecord.id },
       });
+      expect(transactionClientMock.productWarehouseStock.update).toHaveBeenCalledWith({
+        where: {
+          productId_wareHouseId: {
+            productId: sampleTransactionInRecord.product.id,
+            wareHouseId: sampleTransactionInRecord.warehouse.id,
+          },
+        },
+        data: {
+          qtyOnHand: {
+            decrement: sampleTransactionInRecord.amount,
+          },
+          version: {
+            increment: 1,
+          },
+        },
+      });
       expect(result).toEqual(sampleTransactionInRecord);
+      expect(transactionRunnerMock).toHaveBeenCalledTimes(1);
     });
   });
 });

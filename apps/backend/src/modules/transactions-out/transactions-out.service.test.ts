@@ -60,10 +60,12 @@ const createTransactionClientMock = () => ({
   productWarehouseStock: {
     findFirst: jest.fn(),
     updateMany: jest.fn(),
+    update: jest.fn(),
   },
   transactionOut: {
     findFirst: jest.fn(),
     create: jest.fn(),
+    delete: jest.fn(),
   },
 });
 
@@ -265,14 +267,37 @@ describe("TransactionsOutService", () => {
   describe("remove", () => {
     it("deletes the transaction and returns the previous entity", async () => {
       transactionOutMock.findUnique.mockResolvedValueOnce(sampleTransactionOutRecord as any);
-      transactionOutMock.delete.mockResolvedValueOnce(sampleTransactionOutRecord as any);
+      transactionClientMock.transactionOut.delete.mockResolvedValueOnce(undefined);
+      transactionClientMock.productWarehouseStock.update.mockResolvedValueOnce(undefined);
 
       const result = await service.remove(sampleTransactionOutRecord.id);
 
-      expect(transactionOutMock.delete).toHaveBeenCalledWith({
+      expect(transactionOutMock.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: sampleTransactionOutRecord.id },
+        })
+      );
+      expect(transactionClientMock.transactionOut.delete).toHaveBeenCalledWith({
         where: { id: sampleTransactionOutRecord.id },
       });
+      expect(transactionClientMock.productWarehouseStock.update).toHaveBeenCalledWith({
+        where: {
+          productId_wareHouseId: {
+            productId: sampleTransactionOutRecord.product.id,
+            wareHouseId: sampleTransactionOutRecord.warehouse.id,
+          },
+        },
+        data: {
+          qtyOnHand: {
+            increment: sampleTransactionOutRecord.amount,
+          },
+          version: {
+            increment: 1,
+          },
+        },
+      });
       expect(result).toEqual(sampleTransactionOutRecord);
+      expect(transactionRunnerMock).toHaveBeenCalledTimes(1);
     });
   });
 });
