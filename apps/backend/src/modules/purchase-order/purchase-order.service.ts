@@ -74,14 +74,14 @@ export const purchaseOrderServices = {
   async find(pagination: PaginationQuery): Promise<PurchaseOrderList> {
     const { search, limit, page } = pagination;
 
-    const count = await prisma.purchaseOrder.count({
-      where: { orderNumber: { contains: search } },
-    });
+    const where = search ? { orderNumber: { contains: search } } : undefined;
+
+    const count = await prisma.purchaseOrder.count({ where });
 
     const purchaseOrders = await prisma.purchaseOrder.findMany({
       take: limit,
       skip: (page - 1) * limit,
-      where: { orderNumber: { contains: search } },
+      where,
       include: {
         supplier: true,
         purchaseLists: true,

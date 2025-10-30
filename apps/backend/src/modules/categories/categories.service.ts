@@ -18,14 +18,14 @@ export const categoriesServices = {
   async find(pagination: PaginationQuery): Promise<CategoryList> {
     const { search, limit, page } = pagination;
 
-    const count = await prisma.category.count({
-      where: { name: { contains: search } },
-    });
+    const where = search ? { name: { contains: search } } : undefined;
+
+    const count = await prisma.category.count({ where });
 
     const categories = await prisma.category.findMany({
       take: limit,
       skip: (page - 1) * limit,
-      where: { name: { contains: search } },
+      where,
     });
 
     return {

@@ -42,14 +42,14 @@ export const productsServices = {
   async find(pagination: PaginationQuery): Promise<ProductList> {
     const { search, limit, page } = pagination;
 
-    const count = await prisma.product.count({
-      where: { name: { contains: search } },
-    });
+    const where = search ? { name: { contains: search } } : undefined;
+
+    const count = await prisma.product.count({ where });
 
     const products = await prisma.product.findMany({
       take: limit,
       skip: (page - 1) * limit,
-      where: { name: { contains: search } },
+      where,
       include: { category: true, unit: true },
     });
 

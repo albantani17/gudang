@@ -29,14 +29,14 @@ export const suppliersServices = {
   async find(pagination: PaginationQuery): Promise<SupplierList> {
     const { search, limit, page } = pagination;
 
-    const count = await prisma.supplier.count({
-      where: { name: { contains: search } },
-    });
+    const where = search ? { name: { contains: search } } : undefined;
+
+    const count = await prisma.supplier.count({ where });
 
     const suppliers = await prisma.supplier.findMany({
       take: limit,
       skip: (page - 1) * limit,
-      where: { name: { contains: search } },
+      where,
     });
 
     return {

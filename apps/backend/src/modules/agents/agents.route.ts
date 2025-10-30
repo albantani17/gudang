@@ -51,7 +51,7 @@ agentsRouter.put(
 
 agentsRouter.delete(
   "/:id",
-  zValidator("param", AgentIdParam, zodValidationErrorHandler),
+  zValidator("param", AgentIdParam  , zodValidationErrorHandler),
   async (c) => {
     const { id } = c.req.valid("param");
     const result = await agentsServices.delete(id);

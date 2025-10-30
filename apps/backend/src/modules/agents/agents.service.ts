@@ -1,7 +1,12 @@
 import { AppError } from "../../common/errors";
 import { PaginationQuery } from "../../common/schema/pagination.schema";
 import prisma from "../../lib/prisma";
-import { AgentEntity, AgentList, CreateAgent, UpdateAgent } from "./agents.schema";
+import {
+  AgentEntity,
+  AgentList,
+  CreateAgent,
+  UpdateAgent,
+} from "./agents.schema";
 
 export const agentsServices = {
   async create(data: CreateAgent): Promise<AgentEntity> {
@@ -23,14 +28,14 @@ export const agentsServices = {
   async find(pagination: PaginationQuery): Promise<AgentList> {
     const { search, limit, page } = pagination;
 
-    const count = await prisma.agent.count({
-      where: { name: { contains: search } },
-    });
+    const where = search ? { name: { contains: search } } : undefined;
+
+    const count = await prisma.agent.count({ where });
 
     const agents = await prisma.agent.findMany({
       take: limit,
       skip: (page - 1) * limit,
-      where: { name: { contains: search } },
+      where,
     });
 
     return {

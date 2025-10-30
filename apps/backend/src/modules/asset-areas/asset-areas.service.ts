@@ -1,7 +1,12 @@
 import { AppError } from "../../common/errors";
 import { PaginationQuery } from "../../common/schema/pagination.schema";
 import prisma from "../../lib/prisma";
-import { AssetAreaEntity, AssetAreaList, CreateAssetArea, UpdateAssetArea } from "./asset-areas.schema";
+import {
+  AssetAreaEntity,
+  AssetAreaList,
+  CreateAssetArea,
+  UpdateAssetArea,
+} from "./asset-areas.schema";
 
 export const assetAreasServices = {
   async create(data: CreateAssetArea): Promise<AssetAreaEntity> {
@@ -23,14 +28,16 @@ export const assetAreasServices = {
   async find(pagination: PaginationQuery): Promise<AssetAreaList> {
     const { search, limit, page } = pagination;
 
-    const count = await prisma.assetArea.count({
-      where: { name: { contains: search } },
-    });
+    const where = search
+      ? { name: { contains: search, mode: "insensitive" as const } }
+      : undefined;
+
+    const count = await prisma.assetArea.count({ where });
 
     const assetAreas = await prisma.assetArea.findMany({
       take: limit,
       skip: (page - 1) * limit,
-      where: { name: { contains: search } },
+      where,
     });
 
     return {

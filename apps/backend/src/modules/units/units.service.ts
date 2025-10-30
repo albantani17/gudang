@@ -25,12 +25,14 @@ export const unitServices = {
   async find(pagination: PaginationQuery): Promise<UnitList> {
     const { search, limit, page } = pagination;
 
-    const count = await prisma.unit.count();
+    const where = search ? { code: { contains: search } } : undefined;
+
+    const count = await prisma.unit.count({ where });
 
     const units = await prisma.unit.findMany({
       take: limit,
       skip: (page - 1) * limit,
-      where: { code: { contains: search } },
+      where,
     });
 
     return {
