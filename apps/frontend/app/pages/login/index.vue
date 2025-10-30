@@ -1,12 +1,15 @@
 <script setup lang="ts">
+import type { LoginSchema } from "#imports";
 import type { AuthFormField, FormSubmitEvent } from "#ui/types";
-import z from "zod";
+import { FetchError } from "ofetch";
 
 definePageMeta({
   layout: "auth",
 });
 
 const toast = useToast();
+const { login } = useAuth();
+const loading = ref(false);
 
 const fields: AuthFormField[] = [
   {
@@ -25,26 +28,38 @@ const fields: AuthFormField[] = [
   },
 ];
 
-const schema = z.object({
-  identifier: z
-    .string("Email atau username tidak boleh kosong")
-    .min(1, "Email atau username tidak boleh kosong"),
-  password: z
-    .string("Password tidak boleh kosong")
-    .min(1, "Password tidak boleh kosong"),
-});
-
-type LoginSchema = z.infer<typeof schema>;
-
-const onSubmit = (payload: FormSubmitEvent<LoginSchema>) => {
-  console.log(payload);
-
-  toast.add({
-    title: "Success",
-    description: "Login berhasil",
-    icon: "i-lucide-check",
-    color: "success",
-  });
+const onSubmit = async (payload: FormSubmitEvent<LoginSchema>) => {
+  const cookie = useCookie("auth_token");
+  loading.value = true;
+  try {
+    const { data } = await login(payload.data);
+    cookie.value = data;
+    toast.add({
+      title: "Success",
+      description: "Login berhasil",
+      icon: "i-lucide-check",
+      color: "success",
+    });
+    loading.value = false;
+    navigateTo("/");
+  } catch (error) {
+    if (error instanceof FetchError) {
+      toast.add({
+        title: "Error",
+        description: error.data.message ||  error.message,
+        icon: "i-lucide-x",
+        color: "error",
+      });
+      return
+    }
+    toast.add({
+      title: "Error",
+      description: "Login gagal",
+      icon: "i-lucide-x",
+      color: "error",
+    });
+    loading.value = false;
+  }
 };
 </script>
 
@@ -52,7 +67,7 @@ const onSubmit = (payload: FormSubmitEvent<LoginSchema>) => {
   <div class="min-h-screen flex items-center justify-center gap-4 p-4">
     <UPageCard class="w-full max-w-md">
       <UAuthForm
-        :schema="schema"
+        :schema="LoginSchema"
         title="Login"
         :fields="fields"
         icon="i-lucide-warehouse"
