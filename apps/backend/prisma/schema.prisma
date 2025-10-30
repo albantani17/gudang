@@ -67,6 +67,7 @@ model Product {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt()
   purchaseLists   PurchaseList[]
+  assets          Asset[]
 
   @@index([unitId])
   @@index([categoryId])
@@ -97,6 +98,7 @@ model AssetArea {
   id        String   @id @default(uuid())
   code      String   @unique
   name      String
+  assets    Asset[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -185,7 +187,52 @@ model ProductWarehouseStock {
   productId   String
   wareHouseId String
   qtyOnHand   Int    @default(0)
-  version Int @default(0)
+  version     Int    @default(0)
 
   @@id([productId, wareHouseId])
+}
+
+enum ServiceType {
+  HOTSPOT
+  PPPOE
+}
+
+enum OwnerAsset {
+  PERUSAHAAN
+  AGEN
+}
+
+model Asset {
+  id           String       @id @default(uuid())
+  serialNumber String
+  macAddress   String
+  productId    String
+  product      Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+  assetAreaId  String
+  assetArea    AssetArea    @relation(fields: [assetAreaId], references: [id], onDelete: Restrict)
+  serviceType  ServiceType
+  ownerAsset   OwnerAsset
+  orderDate    DateTime     @default(now())
+  technician   String
+  latitude     Float        @db.Float
+  longitude    Float        @db.Float
+  isActive     Boolean      @default(true)
+  description  String?
+  assetBroken  AssetBroken?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+enum AssetCondition {
+  GOOD
+  BROKEN
+}
+
+model AssetBroken {
+  id          String         @id @default(uuid())
+  assetId     String         @unique
+  asset       Asset          @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  condition   AssetCondition
+  information String
+  createdAt   DateTime       @default(now())
 }
