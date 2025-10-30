@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { CreateRole, RoleIdParam } from "./roles.schema";
+import { CreateRole, RoleIdParam, UpdateRole } from "./roles.schema";
 import { rolesService } from "./roles.service";
 import { PaginationQuery } from "../../common/schema/pagination.schema";
 import { zodValidationErrorHandler } from "../../common/errors";
@@ -40,7 +40,7 @@ rolesRouter.get(
 rolesRouter.put(
   "/:id",
   zValidator("param", RoleIdParam, zodValidationErrorHandler),
-  zValidator("json", CreateRole, zodValidationErrorHandler),
+  zValidator("json", UpdateRole, zodValidationErrorHandler),
   async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");

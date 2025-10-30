@@ -1,5 +1,7 @@
 import { app } from "./app";
+import { validateEnvironment } from "./common/environment";
 
+validateEnvironment();
 
 Bun.serve({
   port: Number(process.env.PORT ?? 3000),

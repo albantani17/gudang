@@ -14,7 +14,9 @@ export const CreateTransactionIn = z.object({
     .uuid("Warehouse ID tidak valid")
     .nonempty("Warehouse ID tidak boleh kosong"),
   invoice: z.string("Invoice tidak valid").min(1, "Invoice tidak boleh kosong"),
-  amount: z.number("Jumlah barang tidak valid").min(1, "Jumlah barang tidak boleh kosong"),
+  amount: z
+    .number("Jumlah barang tidak valid")
+    .min(1, "Jumlah barang tidak boleh kosong"),
   date: z.date("Tanggal tidak valid").optional(),
 });
 
@@ -29,6 +31,7 @@ export const TransactionInEntity = z.object({
   }),
   supplier: SupplierEntity,
   warehouse: WareHouseEntity,
+  transactionId: z.string(),
   invoice: z.string(),
   amount: z.number(),
   date: z.date(),

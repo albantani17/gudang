@@ -67,6 +67,12 @@ const createTransactionInMock = () => ({
 });
 
 const createTransactionClientMock = () => ({
+  transactionIn: {
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    delete: jest.fn(),
+  },
   productWarehouseStock: {
     upsert: jest.fn(),
     update: jest.fn(),
@@ -75,7 +81,9 @@ const createTransactionClientMock = () => ({
 
 let transactionInMock = createTransactionInMock();
 let transactionClientMock = createTransactionClientMock();
-let transactionRunnerMock = jest.fn(async (cb: any) => cb(transactionClientMock));
+let transactionRunnerMock = jest.fn(async (cb: any) =>
+  cb(transactionClientMock)
+);
 
 beforeEach(() => {
   jest.restoreAllMocks();
@@ -96,7 +104,9 @@ describe("TransactionInService", () => {
 
   describe("create", () => {
     it("throws when invoice already exists", async () => {
-      transactionInMock.findFirst.mockResolvedValueOnce(sampleTransactionInRecord as any);
+      transactionClientMock.transactionIn.findFirst.mockResolvedValueOnce(
+        sampleTransactionInRecord as any
+      );
 
       await expect(service.create(sampleCreatePayload)).rejects.toMatchObject({
         code: "BAD_REQUEST",
@@ -104,21 +114,32 @@ describe("TransactionInService", () => {
         message: "Invoice already exists",
       });
 
-      expect(transactionInMock.create).not.toHaveBeenCalled();
-      expect(transactionClientMock.productWarehouseStock.upsert).not.toHaveBeenCalled();
+      expect(transactionClientMock.transactionIn.create).not.toHaveBeenCalled();
+      expect(
+        transactionClientMock.productWarehouseStock.upsert
+      ).not.toHaveBeenCalled();
       expect(transactionRunnerMock).toHaveBeenCalledTimes(1);
     });
 
     it("creates a transaction in with generated transactionId", async () => {
-      transactionInMock.findFirst.mockResolvedValueOnce(null);
-      transactionInMock.count.mockResolvedValueOnce(4);
-      transactionInMock.create.mockResolvedValueOnce(sampleTransactionInRecord as any);
-      transactionClientMock.productWarehouseStock.upsert.mockResolvedValueOnce(undefined);
+      transactionClientMock.transactionIn.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ transactionId: "TR-4" });
+      transactionClientMock.transactionIn.create.mockResolvedValueOnce(
+        sampleTransactionInRecord as any
+      );
+      transactionClientMock.productWarehouseStock.upsert.mockResolvedValueOnce(
+        undefined
+      );
 
       const result = await service.create(sampleCreatePayload);
 
-      expect(transactionInMock.count).toHaveBeenCalledTimes(1);
-      expect(transactionClientMock.productWarehouseStock.upsert).toHaveBeenCalledWith({
+      expect(
+        transactionClientMock.transactionIn.findFirst
+      ).toHaveBeenCalledTimes(2);
+      expect(
+        transactionClientMock.productWarehouseStock.upsert
+      ).toHaveBeenCalledWith({
         where: {
           productId_wareHouseId: {
             productId: sampleCreatePayload.productId,
@@ -139,7 +160,7 @@ describe("TransactionInService", () => {
           },
         },
       });
-      expect(transactionInMock.create).toHaveBeenCalledWith(
+      expect(transactionClientMock.transactionIn.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             transactionId: "TR-5",
@@ -161,14 +182,64 @@ describe("TransactionInService", () => {
       expect(result).toEqual(sampleTransactionInRecord);
       expect(transactionRunnerMock).toHaveBeenCalledTimes(1);
     });
+
+    it("retries when transactionId hits a unique constraint race", async () => {
+      const uniqueError = Object.assign(
+        new Error("Unique constraint failed"),
+        {
+          code: "P2002",
+          meta: {
+            target: ["transactionId"],
+          },
+        }
+      );
+
+      transactionClientMock.transactionIn.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ transactionId: "TR-1" })
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ transactionId: "TR-1" });
+
+      transactionClientMock.transactionIn.create
+        .mockRejectedValueOnce(uniqueError)
+        .mockResolvedValueOnce({
+          ...sampleTransactionInRecord,
+          transactionId: "TR-2",
+        });
+
+      transactionClientMock.productWarehouseStock.upsert.mockResolvedValueOnce(
+        undefined
+      );
+
+      const result = await service.create(sampleCreatePayload);
+
+      expect(transactionClientMock.transactionIn.create).toHaveBeenCalledTimes(
+        2
+      );
+      expect(
+        transactionClientMock.productWarehouseStock.upsert
+      ).toHaveBeenCalledTimes(1);
+      expect(transactionRunnerMock).toHaveBeenCalledTimes(2);
+      expect(result.transactionId).toBe("TR-2");
+    });
   });
 
   describe("find", () => {
     it("returns paginated results with search criteria", async () => {
       const pagination = { limit: 10, page: 2, search: "INV" };
       const expectedSearch = [
-        { invoice: { contains: pagination.search, mode: "insensitive" as const } },
-        { transactionId: { contains: pagination.search, mode: "insensitive" as const } },
+        {
+          invoice: {
+            contains: pagination.search,
+            mode: "insensitive" as const,
+          },
+        },
+        {
+          transactionId: {
+            contains: pagination.search,
+            mode: "insensitive" as const,
+          },
+        },
         {
           product: {
             name: { contains: pagination.search, mode: "insensitive" as const },
@@ -177,7 +248,9 @@ describe("TransactionInService", () => {
       ];
 
       transactionInMock.count.mockResolvedValueOnce(3);
-      transactionInMock.findMany.mockResolvedValueOnce([sampleTransactionInRecord] as any);
+      transactionInMock.findMany.mockResolvedValueOnce([
+        sampleTransactionInRecord,
+      ] as any);
 
       const result = await service.find(pagination);
 
@@ -234,11 +307,15 @@ describe("TransactionInService", () => {
     it("throws when transaction not found", async () => {
       transactionInMock.findUnique.mockResolvedValueOnce(null);
 
-      await expect(service.findOne("missing-id")).rejects.toBeInstanceOf(AppError);
+      await expect(service.findOne("missing-id")).rejects.toBeInstanceOf(
+        AppError
+      );
     });
 
     it("returns the transaction when found", async () => {
-      transactionInMock.findUnique.mockResolvedValueOnce(sampleTransactionInRecord as any);
+      transactionInMock.findUnique.mockResolvedValueOnce(
+        sampleTransactionInRecord as any
+      );
 
       const result = await service.findOne(sampleTransactionInRecord.id);
 
@@ -253,21 +330,31 @@ describe("TransactionInService", () => {
 
   describe("remove", () => {
     it("deletes the transaction and returns the previous entity", async () => {
-      transactionInMock.findUnique.mockResolvedValueOnce(sampleTransactionInRecord as any);
-      transactionInMock.delete.mockResolvedValueOnce(sampleTransactionInRecord as any);
-      transactionClientMock.productWarehouseStock.update.mockResolvedValueOnce(undefined);
+      transactionClientMock.transactionIn.findUnique.mockResolvedValueOnce(
+        sampleTransactionInRecord as any
+      );
+      transactionClientMock.transactionIn.delete.mockResolvedValueOnce(
+        undefined
+      );
+      transactionClientMock.productWarehouseStock.update.mockResolvedValueOnce(
+        undefined
+      );
 
       const result = await service.remove(sampleTransactionInRecord.id);
 
-      expect(transactionInMock.findUnique).toHaveBeenCalledWith(
+      expect(
+        transactionClientMock.transactionIn.findUnique
+      ).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: sampleTransactionInRecord.id },
         })
       );
-      expect(transactionInMock.delete).toHaveBeenCalledWith({
+      expect(transactionClientMock.transactionIn.delete).toHaveBeenCalledWith({
         where: { id: sampleTransactionInRecord.id },
       });
-      expect(transactionClientMock.productWarehouseStock.update).toHaveBeenCalledWith({
+      expect(
+        transactionClientMock.productWarehouseStock.update
+      ).toHaveBeenCalledWith({
         where: {
           productId_wareHouseId: {
             productId: sampleTransactionInRecord.product.id,

@@ -36,12 +36,14 @@ export class AssetService {
         ]
       : undefined;
 
-    const count = await prisma.asset.count({ where: { OR: searchCondition } });
+    const where = searchCondition ? { OR: searchCondition } : undefined;
+
+    const count = await prisma.asset.count({ where });
 
     const assets = await prisma.asset.findMany({
       take: limit,
       skip: (page - 1) * limit,
-      where: { OR: searchCondition },
+      where,
       include: { assetArea: true, assetBroken: true, product: true },
     });
 
@@ -72,7 +74,7 @@ export class AssetService {
   async returnAsset(id: string, data: ReturnAssetBody): Promise<AssetEntity> {
     await this.findOne(id);
 
-    return await prisma.$transaction(async(tx) => {
+    return await prisma.$transaction(async (tx) => {
       const assetUpdate = await tx.asset.update({
         where: { id },
         data: {

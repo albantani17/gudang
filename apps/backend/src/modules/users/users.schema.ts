@@ -5,18 +5,23 @@ export const UserIdParam = z.object({
 });
 
 export const CreateUserBody = z.object({
-  email: z.email(),
-  name: z.string(),
-  username: z.string(),
-  password: z.string().min(8).check(),
-  roleId: z.uuid()
+  email: z.email("Email tidak valid").nonempty("Email tidak boleh kosong"),
+  name: z.string("Name tidak valid").nonempty("Name tidak boleh kosong"),
+  username: z
+    .string("Username tidak valid")
+    .nonempty("Username tidak boleh kosong"),
+  password: z
+    .string("Password tidak valid")
+    .min(8)
+    .nonempty("Password tidak boleh kosong"),
+  roleId: z.uuid("Role ID tidak valid").nonempty("Role ID tidak boleh kosong"),
 });
 
 export const UpdateUserBody = z.object({
-  email: z.email().optional(),
-  name: z.string().optional(),
-  username: z.string().optional(),
-  password: z.string().optional(),
+  email: z.email("Email tidak valid").optional(),
+  name: z.string("Name tidak valid").optional(),
+  username: z.string("Username tidak valid").optional(),
+  password: z.string("Password tidak valid").optional(),
 });
 
 export const UserEntity = z.object({

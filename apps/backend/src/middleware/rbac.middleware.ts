@@ -11,7 +11,13 @@ export const rbacMiddleware = async (c: Context, next: Next) => {
   const user = c.get("user") as UserPayload;
   const role = await rolesService.findOne(user.roleId);
   const permission = role.permission as string[];
-  const method = c.req.method as "GET" | "POST" | "PUT" | "DELETE";
+  const method = c.req.method as
+    | "GET"
+    | "POST"
+    | "PUT"
+    | "DELETE"
+    | "PATCH"
+    | "OPTIONS";
 
   const mapMethod = {
     GET: "read",
@@ -19,6 +25,10 @@ export const rbacMiddleware = async (c: Context, next: Next) => {
     PUT: "update",
     DELETE: "delete",
   };
+
+  if (method === "OPTIONS" || method === "PATCH") {
+    throw new AppError("FORBIDDEN", 403, "Forbidden");
+  }
 
   if (permission[0] === "*") {
     return next();

@@ -1,16 +1,10 @@
 import { PrismaClient } from "../src/generated/prisma";
+import { ENV_ADMIN_SEED } from "../src/common/environment";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  const adminUsername = process.env.ADMIN_USERNAME;
-
-  if (!adminEmail || !adminPassword || !adminUsername) {
-    console.log("ADMIN_EMAIL, ADMIN_PASSWORD and ADMIN_USERNAME must be set");
-    return;
-  }
+  const { ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_USERNAME } = ENV_ADMIN_SEED();
 
   const exists = await prisma.user.findFirst();
 
@@ -21,8 +15,9 @@ async function main() {
 
   const roleExists = await prisma.role.findFirst();
 
-  const result: { id: string; name: string } = { id: "", name: "" };
-  if (!roleExists) {
+  let roleId = roleExists?.id;
+
+  if (!roleId) {
     const role = await prisma.role.create({
       data: {
         name: "Admin",
@@ -30,21 +25,20 @@ async function main() {
       },
     });
 
-    result.id = role.id;
-    result.name = role.name;
+    roleId = role.id;
   }
 
   await prisma.user.create({
     data: {
-      username: adminUsername,
-      email: adminEmail,
-      password: await Bun.password.hash(adminPassword),
+      username: ADMIN_USERNAME,
+      email: ADMIN_EMAIL,
+      password: await Bun.password.hash(ADMIN_PASSWORD),
       name: "Admin",
-      roleId: result.id,
+      roleId,
     },
   });
 
-  console.log(`Admin user created with email: ${adminEmail}`);
+  console.log(`Admin user created with email: ${ADMIN_EMAIL}`);
 }
 
 main()
