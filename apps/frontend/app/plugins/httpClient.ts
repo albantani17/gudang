@@ -5,20 +5,15 @@ export default defineNuxtPlugin(() => {
   const httpClient = $fetch.create({
     baseURL: config.public.apiBaseUrl,
     onRequest({ options }) {
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
       if (token.value) {
-        const headers = new Headers({
-          ...options.headers,
-          Authorization: `Bearer ${token.value}`,
-        });
-        options.headers = {
-          ...headers,
-        };
+        headers.Authorization = `Bearer ${token.value}`;
       }
 
-      options.headers = {
-        ...options.headers,
-        "Content-Type": "application/json",
-      } as Headers;
+      options.headers = headers as unknown as Headers;
     },
     onResponse({ response }) {
       if (import.meta.dev) {
@@ -29,6 +24,7 @@ export default defineNuxtPlugin(() => {
       console.error("Response error:", response.status, response._data);
 
       if (response.status === 401) {
+        token.value = null;
         navigateTo("/login");
       }
 

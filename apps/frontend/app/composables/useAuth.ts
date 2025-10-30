@@ -1,4 +1,5 @@
 import z from "zod";
+import type { TUSer } from "~/types/user";
 
 export const LoginSchema = z.object({
   identifier: z
@@ -23,7 +24,7 @@ export const useAuth = () => {
   };
 
   const me = async () => {
-    const result = await $httpClient<{ data: string }>("/auth/me", {
+    const result = await $httpClient<{ data: TUSer }>("/auth/me", {
       method: "GET",
     });
     return result;
@@ -33,4 +34,12 @@ export const useAuth = () => {
     login,
     me,
   };
+};
+
+export const useAuthMe = () => {
+  const loading = ref(true);
+  const { me } = useAuth();
+  const { data } = useAsyncData("me", () => me());
+  loading.value = false;
+  return { data, loading };
 };

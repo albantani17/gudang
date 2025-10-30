@@ -29,7 +29,11 @@ const fields: AuthFormField[] = [
 ];
 
 const onSubmit = async (payload: FormSubmitEvent<LoginSchema>) => {
-  const cookie = useCookie("auth_token");
+  const cookie = useCookie("auth_token", {
+    maxAge: 60 * 60,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
   loading.value = true;
   try {
     const { data } = await login(payload.data);
@@ -46,11 +50,12 @@ const onSubmit = async (payload: FormSubmitEvent<LoginSchema>) => {
     if (error instanceof FetchError) {
       toast.add({
         title: "Error",
-        description: error.data.message ||  error.message,
+        description: error.data.message || error.message,
         icon: "i-lucide-x",
         color: "error",
       });
-      return
+      loading.value = false;
+      return;
     }
     toast.add({
       title: "Error",
@@ -71,6 +76,7 @@ const onSubmit = async (payload: FormSubmitEvent<LoginSchema>) => {
         title="Login"
         :fields="fields"
         icon="i-lucide-warehouse"
+        :loading="loading"
         description="Login untuk masuk ke sistem gudang"
         @submit="onSubmit"
       />
