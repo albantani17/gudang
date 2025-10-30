@@ -1,7 +1,15 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  modules: ["@nuxt/eslint", "@nuxt/ui", "@vueuse/nuxt"],
-
+  modules: [
+    "@nuxt/eslint",
+    "@nuxt/ui",
+    "@vueuse/nuxt",
+    "@nuxt/image",
+    "@pinia/nuxt",
+  ],
+  pinia: {
+    storesDirs: ["~/stores/**"],
+  },
   devtools: {
     enabled: true,
   },
@@ -9,6 +17,13 @@ export default defineNuxtConfig({
     public: {
       apiBaseUrl: process.env.API_BASE_URL,
     },
+  },
+
+  colorMode: {
+    preference: "system",
+    fallback: "light",
+    storageKey: "nuxt-color-mode",
+    storage: "localStorage",
   },
 
   css: ["~/assets/css/main.css"],

@@ -27,8 +27,13 @@ export const rolesService = {
   async find(pagination: PaginationQuery): Promise<RoleList> {
     const { search, limit, page } = pagination;
 
-    const where = search ? { name: { contains: search } } : undefined;
-
+    const where = search?.trim()
+      ? {
+          name: {
+            contains: search.trim(),
+          },
+        }
+      : {};
     const count = await prisma.role.count({ where });
 
     const roles = await prisma.role.findMany({

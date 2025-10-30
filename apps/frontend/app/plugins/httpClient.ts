@@ -1,6 +1,7 @@
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig();
   const token = useCookie("auth_token");
+  const router = useRouter();
 
   const httpClient = $fetch.create({
     baseURL: config.public.apiBaseUrl,
@@ -24,8 +25,10 @@ export default defineNuxtPlugin(() => {
       console.error("Response error:", response.status, response._data);
 
       if (response.status === 401) {
+        console.log("Unauthorized, logging out...");
         token.value = null;
         navigateTo("/login");
+        console.log("Redirected to login page");
       }
 
       if (response.status === 500) {

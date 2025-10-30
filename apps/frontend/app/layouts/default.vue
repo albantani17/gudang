@@ -21,6 +21,7 @@ const links = computed<NavigationMenuItem[][]>(() => [
       label: "User Management",
       icon: "i-lucide-users",
       type: "trigger",
+      active: route.path.startsWith("/users"),
       children: [
         {
           label: "User",
@@ -39,6 +40,7 @@ const links = computed<NavigationMenuItem[][]>(() => [
       label: "Master",
       icon: "i-lucide-album",
       type: "trigger",
+      active: route.path.startsWith("/masters"),
       children: [
         {
           label: "Barang",
@@ -89,6 +91,7 @@ const links = computed<NavigationMenuItem[][]>(() => [
       icon: "i-lucide-shopping-cart",
       type: "trigger",
       defaultOpen: true,
+      active: route.path.startsWith("/purchases"),
       children: [
         {
           label: "Pembelian Order(PO)",
@@ -98,7 +101,7 @@ const links = computed<NavigationMenuItem[][]>(() => [
         },
         {
           label: "Laporan PO",
-          to: "/purchase-reports",
+          to: "/purchase/reports",
           description: "Laporan pembelian barang",
           icon: "i-lucide-notebook",
         },
@@ -108,6 +111,7 @@ const links = computed<NavigationMenuItem[][]>(() => [
       label: "Asset",
       type: "trigger",
       icon: "i-lucide-package-search",
+      active: route.path.startsWith("/assets"),
       defaultOpen: true,
       children: [
         {
@@ -118,7 +122,7 @@ const links = computed<NavigationMenuItem[][]>(() => [
         },
         {
           label: "Asset Non aktif",
-          to: "/asset-reports",
+          to: "/asset/reports",
           description: "Laporan asset barang",
           icon: "i-lucide-package-x",
         },
@@ -128,6 +132,7 @@ const links = computed<NavigationMenuItem[][]>(() => [
       label: "Aplikasi",
       type: "trigger",
       icon: "i-lucide-settings",
+      active: route.path.startsWith("/configs"),
       children: [
         {
           label: "Konfigurasi",
@@ -137,7 +142,7 @@ const links = computed<NavigationMenuItem[][]>(() => [
         },
         {
           label: "Log Aplikasi",
-          to: "/logs",
+          to: "/configs/logs",
           description: "Log aplikasi",
           icon: "i-lucide-logs",
         },
@@ -149,7 +154,8 @@ const links = computed<NavigationMenuItem[][]>(() => [
       label: color.value === "dark" ? "Light Mode" : "Dark Mode",
       icon: color.value === "dark" ? "i-lucide-sun" : "i-lucide-moon",
       onClick: () => {
-        color.value = color.value === "dark" ? "light" : "dark";
+        const newColor = color.value === "dark" ? "light" : "dark";
+        color.preference = newColor;
       },
     },
     {
@@ -208,7 +214,11 @@ onMounted(async () => {
       :ui="{ footer: 'lg:border-t lg:border-default' }"
     >
       <template #header="{ collapsed }">
-        <UDashboardLogo :collapsed="collapsed" />
+        <NuxtImg
+          :src="collapsed ? '/logo-short.png' : '/logo-full.svg'"
+          alt="Logo"
+          class="mx-auto"
+        />
       </template>
 
       <template #default="{ collapsed }">
